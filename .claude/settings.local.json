@@ -5,7 +5,10 @@
       "Bash(xargs:*)",
       "Bash(npm install)",
       "Bash(NTFY_TOPIC=\"test-topic-12345\" timeout 2 node:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(set:*)",
+      "Bash(npm run:*)",
+      "Bash(timeout 5 tail:*)"
     ]
   }
 }

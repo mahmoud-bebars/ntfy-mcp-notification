@@ -1,0 +1,30 @@
+# Source files (only ship build)
+src/
+tsconfig.json
+
+# Development files
+.git/
+.gitignore
+.github/
+*.md
+!README.md
+
+# Testing
+.npmrc
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env*
+
+# MCP Registry tokens
+.mcpregistry_*

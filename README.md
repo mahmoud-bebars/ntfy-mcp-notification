@@ -1,5 +1,9 @@
 # ntfy MCP Notification Server
 
+[![npm version](https://badge.fury.io/js/ntfy-mcp-notification.svg)](https://www.npmjs.com/package/ntfy-mcp-notification)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+
 An MCP (Model Context Protocol) server that sends push notifications via [ntfy.sh](https://ntfy.sh) when Claude needs user input or confirmation during long-running tasks.
 
 ## Overview
