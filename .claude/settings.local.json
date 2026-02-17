@@ -8,7 +8,9 @@
       "Bash(npm run build:*)",
       "Bash(set:*)",
       "Bash(npm run:*)",
-      "Bash(timeout 5 tail:*)"
+      "Bash(timeout 5 tail:*)",
+      "Bash(npm view:*)",
+      "Bash(env:*)"
     ]
   }
 }
