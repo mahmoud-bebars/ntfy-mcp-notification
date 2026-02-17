@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.mahmoud-bebars/ntfy-notification",
+  "description": "MCP server for sending ntfy.sh notifications when Claude needs user input",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "identifier": "ntfy-mcp-notification",
+      "version": "1.0.0"
+    }
+  ]
+}

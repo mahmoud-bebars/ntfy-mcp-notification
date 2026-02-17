@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(xargs:*)",
+      "Bash(npm install)",
+      "Bash(NTFY_TOPIC=\"test-topic-12345\" timeout 2 node:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
