@@ -1,159 +1,308 @@
-# MCP Registry
+# ntfy MCP Notification Server
 
-The MCP registry provides MCP clients with a list of MCP servers, like an app store for MCP servers.
+[![npm version](https://badge.fury.io/js/ntfy-mcp-notification.svg)](https://www.npmjs.com/package/ntfy-mcp-notification)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
-📖 **[Full documentation](./docs)**
+An MCP (Model Context Protocol) server that sends push notifications via [ntfy.sh](https://ntfy.sh) when Claude needs user input or confirmation during long-running tasks.
 
-## Development Status
+## Overview
 
-> [!WARNING]  
-> The registry is under [active development](#development-status). The registry API spec is unstable and the official MCP registry database may be wiped at any time.
+When Claude Code runs lengthy operations or encounters decisions requiring your input, you may not be actively watching. This MCP server sends push notifications to your phone, tablet, or desktop via ntfy.sh, allowing you to respond promptly.
 
-**2025-09-04 update**: We're targeting a 'preview' go-live on 8th September. This may still be unstable and not provide durability guarantees, but is a step towards being more solidified. A general availability (GA) release will follow later.
+## Features
 
-Current key maintainers:
-- **Adam Jones** (Anthropic) [@domdomegg](https://github.com/domdomegg)  
-- **Tadas Antanavicius** (PulseMCP) [@tadasant](https://github.com/tadasant)
-- **Toby Padilla** (GitHub) [@toby](https://github.com/toby)
+- 🔔 **Push Notifications**: Send notifications to any device via ntfy.sh
+- 🎯 **Two Tools**:
+  - `send_notification`: Send basic notifications
+  - `request_user_confirmation`: Send confirmation requests with urgency levels
+- 🔧 **Configurable**: Priority levels, custom tags, and server URLs
+- 🆓 **Free & Open**: Uses ntfy.sh (no account required)
+- 🔒 **Privacy-Focused**: No data collection, notifications only contain what you specify
+
+## Prerequisites
+
+- **Node.js 18+** (for native `fetch` API support)
+- **ntfy.sh topic** (create one for free at [ntfy.sh](https://ntfy.sh))
+
+## Installation
+
+### Via npx (Recommended)
+
+No installation needed! Use directly with Claude Code:
+
+```json
+{
+  "mcpServers": {
+    "ntfy-notification": {
+      "command": "npx",
+      "args": ["-y", "ntfy-mcp-notification"],
+      "env": {
+        "NTFY_TOPIC": "your-unique-topic-name"
+      }
+    }
+  }
+}
+```
+
+### Via npm (Global Install)
+
+```bash
+npm install -g ntfy-mcp-notification
+```
+
+## Configuration
+
+Add to your Claude Code MCP configuration file:
+
+**Location:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "ntfy-notification": {
+      "command": "npx",
+      "args": ["-y", "ntfy-mcp-notification"],
+      "env": {
+        "NTFY_TOPIC": "claude-notif-a8f3c2d1",
+        "NTFY_SERVER": "https://ntfy.sh",
+        "NTFY_PRIORITY": "3"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `NTFY_TOPIC` | ✅ Yes | - | Your unique ntfy.sh topic name |
+| `NTFY_SERVER` | No | `https://ntfy.sh` | ntfy.sh server URL (for self-hosted) |
+| `NTFY_PRIORITY` | No | `3` | Default priority (1=low, 5=urgent) |
+
+## Setting Up ntfy.sh
+
+### 1. Choose a Topic Name
+
+Pick a unique, hard-to-guess topic name:
+
+```bash
+# Good examples:
+claude-notif-a8f3c2d1
+my-claude-$(uuidgen | head -c 8)
+
+# Bad examples (too easy to guess):
+claude
+notifications
+myname-claude
+```
+
+**⚠️ Security Note**: Topic names are public by default. Anyone who knows your topic can subscribe or send messages. Use a unique, random topic name.
+
+### 2. Subscribe to Your Topic
+
+**On Mobile:**
+1. Install ntfy app ([iOS](https://apps.apple.com/app/ntfy/id1625396347) / [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy))
+2. Tap "+" to add subscription
+3. Enter your topic name (e.g., `claude-notif-a8f3c2d1`)
+4. Save
+
+**On Web:**
+1. Visit [ntfy.sh](https://ntfy.sh)
+2. Enter your topic name in the input field
+3. Click "Subscribe"
+4. Bookmark the page for future access
+
+**On Desktop:**
+- [Progressive Web App](https://ntfy.sh) (Chrome, Edge, Safari)
+- [Electron App](https://github.com/binwiederhier/ntfy-desktop/releases)
+
+### 3. Test Your Setup
+
+Send a test notification:
+
+```bash
+curl -d "Test from ntfy.sh" ntfy.sh/your-topic-name
+```
+
+You should receive the notification on all subscribed devices.
+
+## Usage
+
+Once configured in Claude Code, the tools are available automatically. Claude can call them as needed.
+
+### Tool: send_notification
+
+Send a basic notification to alert the user.
+
+**Parameters:**
+- `message` (required): The notification message
+- `title` (optional): Notification title (default: "Claude Needs Input")
+- `priority` (optional): Priority level 1-5 (default: from config)
+- `tags` (optional): Array of tags (default: `["warning", "claude"]`)
+
+**Example:**
+```json
+{
+  "message": "Found a potential security issue that needs your review",
+  "title": "Security Review Required",
+  "priority": 4,
+  "tags": ["warning", "security", "claude"]
+}
+```
+
+### Tool: request_user_confirmation
+
+Send a notification requesting user confirmation for an action.
+
+**Parameters:**
+- `action` (required): Description of the action needing confirmation
+- `details` (optional): Additional context or details
+- `urgency` (optional): `"low"`, `"normal"`, or `"high"` (default: `"normal"`)
+
+**Example:**
+```json
+{
+  "action": "Delete 15 old log files from /tmp",
+  "details": "Total size: 2.3 GB. Files older than 30 days.",
+  "urgency": "normal"
+}
+```
+
+## Example Workflow
+
+**User:** "Please analyze this large codebase and let me know when you need my input on any decisions"
+
+**Claude:**
+1. Starts analysis of codebase
+2. Encounters a decision point (e.g., API design choice)
+3. Calls `request_user_confirmation`:
+   ```json
+   {
+     "action": "Choose API authentication method",
+     "details": "Options: JWT tokens or OAuth 2.0",
+     "urgency": "normal"
+   }
+   ```
+4. **You receive push notification on your phone** 📱
+5. You open Claude and provide your decision
+6. Claude continues with your chosen approach
+
+## Troubleshooting
+
+### "NTFY_TOPIC environment variable is required"
+
+**Cause**: `NTFY_TOPIC` not set in MCP configuration.
+
+**Solution**: Add `NTFY_TOPIC` to the `env` section of your Claude Code MCP config.
+
+### Notifications Not Received
+
+**Possible causes:**
+
+1. **Topic name mismatch**: Ensure the topic in your MCP config matches your subscription
+2. **ntfy.sh server down**: Check [ntfy.sh status](https://ntfy.sh)
+3. **Network issues**: Test manually:
+   ```bash
+   curl -d "Test" https://ntfy.sh/your-topic-name
+   ```
+
+### "Failed to send: 404"
+
+**Cause**: Invalid ntfy.sh server URL or topic contains invalid characters.
+
+**Solution:**
+- Verify `NTFY_SERVER` is correct (default: `https://ntfy.sh`)
+- Check topic name contains only alphanumeric characters, dashes, and underscores
+
+### Server Won't Start in Claude Code
+
+**Possible causes:**
+
+1. **Node.js version**: Ensure Node.js 18+ is installed:
+   ```bash
+   node --version
+   ```
+2. **MCP config syntax**: Validate JSON syntax in your config file
+3. **Check logs**: Look for errors in Claude Code's MCP server panel
+
+## Security & Privacy
+
+### Topic Privacy
+
+**⚠️ Important**: ntfy.sh topics are **public by default**. Anyone who knows your topic name can subscribe to your notifications or send to your topic.
+
+**Best Practices:**
+1. ✅ Use unique, hard-to-guess topic names
+2. ✅ Avoid including personal information in topic names
+3. ✅ Consider self-hosting ntfy.sh for sensitive environments
+
+### What Gets Sent to ntfy.sh
+
+**Sent:** Notification title, message, priority, tags, and timestamp.
+
+**NOT Sent:** Claude conversation history, credentials, file contents, or any data not explicitly passed to the notification tools.
+
+## Development
+
+### Local Setup
+
+```bash
+git clone https://github.com/mahmoud-bebars/ntfy-mcp-notification.git
+cd ntfy-mcp-notification
+npm install
+npm run build
+```
+
+### Testing with MCP Inspector
+
+```bash
+export NTFY_TOPIC="test-topic-12345"
+npm run inspector
+```
+
+### Building
+
+```bash
+npm run build    # Compile TypeScript
+npm run watch    # Watch mode for development
+```
 
 ## Contributing
 
-We use multiple channels for collaboration - see [modelcontextprotocol.io/community/communication](https://modelcontextprotocol.io/community/communication).
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Often (but not always) ideas flow through this pipeline:
+## Future Enhancements
 
-- **[Discord](https://modelcontextprotocol.io/community/communication)** - Real-time community discussions
-- **[Discussions](https://github.com/modelcontextprotocol/registry/discussions)** - Propose and discuss product/technical requirements
-- **[Issues](https://github.com/modelcontextprotocol/registry/issues)** - Track well-scoped technical work  
-- **[Pull Requests](https://github.com/modelcontextprotocol/registry/pulls)** - Contribute work towards issues
+- [ ] ntfy.sh authentication support (private topics)
+- [ ] Notification history and logging
+- [ ] Retry logic for failed notifications
+- [ ] Rate limiting and deduplication
+- [ ] Webhook server for clickable action buttons
 
-### Quick start:
+## License
 
-#### Pre-requisites
+MIT License - see [LICENSE](LICENSE) file for details
 
-- **Docker**
-- **Go 1.24.x** 
-- **golangci-lint v2.4.0**
+## Links
 
-#### Running the server
+- [ntfy.sh Documentation](https://docs.ntfy.sh/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Claude Code](https://claude.ai/download)
+- [GitHub Repository](https://github.com/mahmoud-bebars/ntfy-mcp-notification)
+- [npm Package](https://www.npmjs.com/package/ntfy-mcp-notification)
 
-```bash
-# Start full development environment
-make dev-compose
-```
+## Acknowledgments
 
-This starts the registry at [`localhost:8080`](http://localhost:8080) with PostgreSQL and seed data. It can be configured with environment variables in [docker-compose.yml](./docker-compose.yml) - see [.env.example](./.env.example) for a reference.
+- [ntfy.sh](https://ntfy.sh) by Philipp C. Heckel
+- [Anthropic](https://anthropic.com) for Claude and MCP SDK
 
-<details>
-<summary>Alternative: Local setup without Docker</summary>
+---
 
-**Prerequisites:**
-- PostgreSQL running locally
-- Go 1.24.x installed
-
-```bash
-# Build and run locally
-make build
-make dev-local
-```
-
-The service runs on [`localhost:8080`](http://localhost:8080) by default. This can be configured with environment variables in `.env` - see [.env.example](./.env.example) for a reference.
-
-</details>
-
-<details>
-<summary>Alternative: Running a pre-built Docker image</summary>
-
-Pre-built Docker images are automatically published to GitHub Container Registry:
-
-```bash
-# Run latest stable release
-docker run -p 8080:8080 ghcr.io/modelcontextprotocol/registry:latest
-
-# Run latest from main branch (continuous deployment)
-docker run -p 8080:8080 ghcr.io/modelcontextprotocol/registry:main
-
-# Run specific release version
-docker run -p 8080:8080 ghcr.io/modelcontextprotocol/registry:v1.0.0
-
-# Run development build from main branch
-docker run -p 8080:8080 ghcr.io/modelcontextprotocol/registry:main-20250906-abc123d
-```
-
-**Available tags:** 
-- **Releases**: `latest`, `v1.0.0`, `v1.1.0`, etc.
-- **Continuous**: `main` (latest main branch build)
-- **Development**: `main-<date>-<sha>` (specific commit builds)
-
-</details>
-
-#### Publishing a server
-
-To publish a server, we've built a simple CLI. You can use it with:
-
-```bash
-# Build the latest CLI
-make publisher
-
-# Use it!
-./bin/mcp-publisher --help
-```
-
-See [the publisher guide](./docs/guides/publishing/publish-server.md) for more details.
-
-#### Other commands
-
-```bash
-# Run lint, unit tests and integration tests
-make check
-```
-
-There are also a few more helpful commands for development. Run `make help` to learn more, or look in [Makefile](./Makefile).
-
-<!--
-For Claude and other AI tools: Always prefer make targets over custom commands where possible.
--->
-
-## Architecture
-
-### Project Structure
-
-```
-├── cmd/                     # Application entry points
-│   └── publisher/           # Server publishing tool
-├── data/                    # Seed data
-├── deploy/                  # Deployment configuration (Pulumi)
-├── docs/                    # Documentation
-├── internal/                # Private application code
-│   ├── api/                 # HTTP handlers and routing
-│   ├── auth/                # Authentication (GitHub OAuth, JWT, namespace blocking)
-│   ├── config/              # Configuration management
-│   ├── database/            # Data persistence (PostgreSQL, in-memory)
-│   ├── service/             # Business logic
-│   ├── telemetry/           # Metrics and monitoring
-│   └── validators/          # Input validation
-├── pkg/                     # Public packages
-│   ├── api/                 # API types and structures
-│   │   └── v0/              # Version 0 API types
-│   └── model/               # Data models for server.json
-├── scripts/                 # Development and testing scripts
-├── tests/                   # Integration tests
-└── tools/                   # CLI tools and utilities
-    └── validate-*.sh        # Schema validation tools
-```
-
-### Authentication
-
-Publishing supports multiple authentication methods:
-- **GitHub OAuth** - For publishing by logging into GitHub
-- **GitHub OIDC** - For publishing from GitHub Actions
-- **DNS verification** - For proving ownership of a domain and its subdomains
-- **HTTP verification** - For proving ownership of a domain
-
-The registry validates namespace ownership when publishing. E.g. to publish...:
-- `io.github.domdomegg/my-cool-mcp` you must login to GitHub as `domdomegg`, or be in a GitHub Action on domdomegg's repos
-- `me.adamjones/my-cool-mcp` you must prove ownership of `adamjones.me` via DNS or HTTP challenge
-
-## More documentation
-
-See the [documentation](./docs) for more details if your question has not been answered here!
+**Made with ❤️ for the Claude Code community**
